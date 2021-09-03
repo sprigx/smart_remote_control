@@ -33,16 +33,19 @@ class RemoteController:
            exit(0)
 
         filenames = glob("./recordings/*.json")
-        self.records = {}
-        for filename in filenames:
-            with open(filename, 'r') as f:
-                f = open(filename, "r")
-                name = re.search('^.*\/(.*).json$', filename).group(1)
-                self.records[name] = json.load(f)
+        self.records = {
+            re.search('^.*\/(.*).json$', filename).group(1):
+            parse_file(filename)
+            for filename in filenames
+        }
 
         pi.set_mode(gpio, pigpio.OUTPUT) # IR TX connected to this GPIO.
         pi.wave_add_new()
         emit_time = time.time()
+
+    def parse_file(filename):
+        with open(filename, 'r') as f:
+            return json.load(f)
 
     def transmit(self, target, command)
     try:
