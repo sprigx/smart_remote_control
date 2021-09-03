@@ -1,4 +1,3 @@
 pigpio
 fastapi
 uvicorn
-
