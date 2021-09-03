@@ -59,57 +59,10 @@ import time
 import json
 import os
 import argparse
+import cProfile
 
 import pigpio # http://abyz.co.uk/rpi/pigpio/python.html
 
-p = argparse.ArgumentParser()
-
-g = p.add_mutually_exclusive_group(required=True)
-g.add_argument("-p", "--play",   help="play keys",   action="store_true")
-g.add_argument("-r", "--record", help="record keys", action="store_true")
-
-p.add_argument("-g", "--gpio", help="GPIO for RX/TX", required=True, type=int)
-p.add_argument("-f", "--file", help="Filename",       required=True)
-
-p.add_argument('id', nargs='+', type=str, help='IR codes')
-
-p.add_argument("--freq",      help="frequency kHz",   type=float, default=38.0)
-
-p.add_argument("--gap",       help="key gap ms",        type=int, default=100)
-p.add_argument("--glitch",    help="glitch us",         type=int, default=100)
-p.add_argument("--post",      help="postamble ms",      type=int, default=15)
-p.add_argument("--pre",       help="preamble ms",       type=int, default=200)
-p.add_argument("--short",     help="short code length", type=int, default=10)
-p.add_argument("--tolerance", help="tolerance percent", type=int, default=15)
-
-p.add_argument("-v", "--verbose", help="Be verbose",     action="store_true")
-p.add_argument("--no-confirm", help="No confirm needed", action="store_true")
-
-args = p.parse_args()
-
-GPIO       = args.gpio
-FILE       = args.file
-GLITCH     = args.glitch
-PRE_MS     = args.pre
-POST_MS    = args.post
-FREQ       = args.freq
-VERBOSE    = args.verbose
-SHORT      = args.short
-GAP_MS     = args.gap
-NO_CONFIRM = args.no_confirm
-TOLERANCE  = args.tolerance
-
-POST_US    = POST_MS * 1000
-PRE_US     = PRE_MS  * 1000
-GAP_S      = GAP_MS  / 1000.0
-CONFIRM    = not NO_CONFIRM
-TOLER_MIN =  (100 - TOLERANCE) / 100.0
-TOLER_MAX =  (100 + TOLERANCE) / 100.0
-
-last_tick = 0
-in_code = False
-code = []
-fetching_code = False
 
 def backup(f):
    """
@@ -354,151 +307,202 @@ def cbf(gpio, level, tick):
          in_code = False
          end_of_code()
 
-pi = pigpio.pi() # Connect to Pi.
+def main():
+    p = argparse.ArgumentParser()
 
-if not pi.connected:
-   exit(0)
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("-p", "--play",   help="play keys",   action="store_true")
+    g.add_argument("-r", "--record", help="record keys", action="store_true")
 
-if args.record: # Record.
+    p.add_argument("-g", "--gpio", help="GPIO for RX/TX", required=True, type=int)
+    p.add_argument("-f", "--file", help="Filename",       required=True)
 
-   try:
-      f = open(FILE, "r")
-      records = json.load(f)
-      f.close()
-   except:
-      records = {}
+    p.add_argument('id', nargs='+', type=str, help='IR codes')
 
-   pi.set_mode(GPIO, pigpio.INPUT) # IR RX connected to this GPIO.
+    p.add_argument("--freq",      help="frequency kHz",   type=float, default=38.0)
 
-   pi.set_glitch_filter(GPIO, GLITCH) # Ignore glitches.
+    p.add_argument("--gap",       help="key gap ms",        type=int, default=100)
+    p.add_argument("--glitch",    help="glitch us",         type=int, default=100)
+    p.add_argument("--post",      help="postamble ms",      type=int, default=15)
+    p.add_argument("--pre",       help="preamble ms",       type=int, default=200)
+    p.add_argument("--short",     help="short code length", type=int, default=10)
+    p.add_argument("--tolerance", help="tolerance percent", type=int, default=15)
 
-   cb = pi.callback(GPIO, pigpio.EITHER_EDGE, cbf)
+    p.add_argument("-v", "--verbose", help="Be verbose",     action="store_true")
+    p.add_argument("--no-confirm", help="No confirm needed", action="store_true")
 
-   # Process each id
+    args = p.parse_args()
 
-   print("Recording")
-   for arg in args.id:
-      print("Press key for '{}'".format(arg))
-      code = []
-      fetching_code = True
-      while fetching_code:
-         time.sleep(0.1)
-      print("Okay")
-      time.sleep(0.5)
+    GPIO       = args.gpio
+    FILE       = args.file
+    GLITCH     = args.glitch
+    PRE_MS     = args.pre
+    POST_MS    = args.post
+    FREQ       = args.freq
+    VERBOSE    = args.verbose
+    SHORT      = args.short
+    GAP_MS     = args.gap
+    NO_CONFIRM = args.no_confirm
+    TOLERANCE  = args.tolerance
 
-      if CONFIRM:
-         press_1 = code[:]
-         done = False
+    POST_US    = POST_MS * 1000
+    PRE_US     = PRE_MS  * 1000
+    GAP_S      = GAP_MS  / 1000.0
+    CONFIRM    = not NO_CONFIRM
+    TOLER_MIN =  (100 - TOLERANCE) / 100.0
+    TOLER_MAX =  (100 + TOLERANCE) / 100.0
 
-         tries = 0
-         while not done:
-            print("Press key for '{}' to confirm".format(arg))
-            code = []
-            fetching_code = True
-            while fetching_code:
-               time.sleep(0.1)
-            press_2 = code[:]
-            the_same = compare(press_1, press_2)
-            if the_same:
-               done = True
-               records[arg] = press_1[:]
-               print("Okay")
-               time.sleep(0.5)
-            else:
-               tries += 1
-               if tries <= 3:
-                  print("No match")
-               else:
-                  print("Giving up on key '{}'".format(arg))
-                  done = True
-               time.sleep(0.5)
-      else: # No confirm.
-         records[arg] = code[:]
+    last_tick = 0
+    in_code = False
+    code = []
+    fetching_code = False
+    pi = pigpio.pi() # Connect to Pi.
 
-   pi.set_glitch_filter(GPIO, 0) # Cancel glitch filter.
-   pi.set_watchdog(GPIO, 0) # Cancel watchdog.
+    if not pi.connected:
+       exit(0)
 
-   tidy(records)
+    if args.record: # Record.
 
-   backup(FILE)
+       try:
+          f = open(FILE, "r")
+          records = json.load(f)
+          f.close()
+       except:
+          records = {}
 
-   f = open(FILE, "w")
-   f.write(json.dumps(records, sort_keys=True).replace("],", "],\n")+"\n")
-   f.close()
+       pi.set_mode(GPIO, pigpio.INPUT) # IR RX connected to this GPIO.
 
-else: # Playback.
+       pi.set_glitch_filter(GPIO, GLITCH) # Ignore glitches.
 
-   try:
-      f = open(FILE, "r")
-   except:
-      print("Can't open: {}".format(FILE))
-      exit(0)
+       cb = pi.callback(GPIO, pigpio.EITHER_EDGE, cbf)
 
-   records = json.load(f)
+       # Process each id
 
-   f.close()
+       print("Recording")
+       for arg in args.id:
+          print("Press key for '{}'".format(arg))
+          code = []
+          fetching_code = True
+          while fetching_code:
+             time.sleep(0.1)
+          print("Okay")
+          time.sleep(0.5)
 
-   pi.set_mode(GPIO, pigpio.OUTPUT) # IR TX connected to this GPIO.
+          if CONFIRM:
+             press_1 = code[:]
+             done = False
 
-   pi.wave_add_new()
+             tries = 0
+             while not done:
+                print("Press key for '{}' to confirm".format(arg))
+                code = []
+                fetching_code = True
+                while fetching_code:
+                   time.sleep(0.1)
+                press_2 = code[:]
+                the_same = compare(press_1, press_2)
+                if the_same:
+                   done = True
+                   records[arg] = press_1[:]
+                   print("Okay")
+                   time.sleep(0.5)
+                else:
+                   tries += 1
+                   if tries <= 3:
+                      print("No match")
+                   else:
+                      print("Giving up on key '{}'".format(arg))
+                      done = True
+                   time.sleep(0.5)
+          else: # No confirm.
+             records[arg] = code[:]
 
-   emit_time = time.time()
+       pi.set_glitch_filter(GPIO, 0) # Cancel glitch filter.
+       pi.set_watchdog(GPIO, 0) # Cancel watchdog.
 
-   if VERBOSE:
-      print("Playing")
+       tidy(records)
 
-   for arg in args.id:
-      if arg in records:
+       backup(FILE)
 
-         code = records[arg]
+       f = open(FILE, "w")
+       f.write(json.dumps(records, sort_keys=True).replace("],", "],\n")+"\n")
+       f.close()
 
-         # Create wave
+    else: # Playback.
 
-         marks_wid = {}
-         spaces_wid = {}
+       try:
+          f = open(FILE, "r")
+       except:
+          print("Can't open: {}".format(FILE))
+          exit(0)
 
-         wave = [0]*len(code)
+       records = json.load(f)
 
-         for i in range(0, len(code)):
-            ci = code[i]
-            if i & 1: # Space
-               if ci not in spaces_wid:
-                  pi.wave_add_generic([pigpio.pulse(0, 0, ci)])
-                  spaces_wid[ci] = pi.wave_create()
-               wave[i] = spaces_wid[ci]
-            else: # Mark
-               if ci not in marks_wid:
-                  wf = carrier(GPIO, FREQ, ci)
-                  pi.wave_add_generic(wf)
-                  marks_wid[ci] = pi.wave_create()
-               wave[i] = marks_wid[ci]
+       f.close()
 
-         delay = emit_time - time.time()
+       pi.set_mode(GPIO, pigpio.OUTPUT) # IR TX connected to this GPIO.
 
-         if delay > 0.0:
-            time.sleep(delay)
+       pi.wave_add_new()
 
-         pi.wave_chain(wave)
+       emit_time = time.time()
 
-         if VERBOSE:
-            print("key " + arg)
+       if VERBOSE:
+          print("Playing")
 
-         while pi.wave_tx_busy():
-            time.sleep(0.002)
+       for arg in args.id:
+          if arg in records:
 
-         emit_time = time.time() + GAP_S
+             code = records[arg]
 
-         for i in marks_wid:
-            pi.wave_delete(marks_wid[i])
+             # Create wave
 
-         marks_wid = {}
+             marks_wid = {}
+             spaces_wid = {}
 
-         for i in spaces_wid:
-            pi.wave_delete(spaces_wid[i])
+             wave = [0]*len(code)
 
-         spaces_wid = {}
-      else:
-         print("Id {} not found".format(arg))
+             for i in range(0, len(code)):
+                ci = code[i]
+                if i & 1: # Space
+                   if ci not in spaces_wid:
+                      pi.wave_add_generic([pigpio.pulse(0, 0, ci)])
+                      spaces_wid[ci] = pi.wave_create()
+                   wave[i] = spaces_wid[ci]
+                else: # Mark
+                   if ci not in marks_wid:
+                      wf = carrier(GPIO, FREQ, ci)
+                      pi.wave_add_generic(wf)
+                      marks_wid[ci] = pi.wave_create()
+                   wave[i] = marks_wid[ci]
 
-pi.stop() # Disconnect from Pi.
+             delay = emit_time - time.time()
 
+             if delay > 0.0:
+                time.sleep(delay)
+
+             pi.wave_chain(wave)
+
+             if VERBOSE:
+                print("key " + arg)
+
+             while pi.wave_tx_busy():
+                time.sleep(0.002)
+
+             emit_time = time.time() + GAP_S
+
+             for i in marks_wid:
+                pi.wave_delete(marks_wid[i])
+
+             marks_wid = {}
+
+             for i in spaces_wid:
+                pi.wave_delete(spaces_wid[i])
+
+             spaces_wid = {}
+          else:
+             print("Id {} not found".format(arg))
+
+    pi.stop() # Disconnect from Pi.
+
+if __name__ == '__main__':
+    cProfile.run('main()')
