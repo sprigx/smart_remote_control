@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import subprocess
 import textwrap
+import uvicorn
 
 app = FastAPI()
 
@@ -20,3 +21,7 @@ def control(request: Request):
         return {"detail": "ok"}
     except:
         return {"detail": "failed"}
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8000)
