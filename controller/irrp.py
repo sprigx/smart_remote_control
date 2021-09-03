@@ -59,7 +59,6 @@ import time
 import json
 import os
 import argparse
-import cProfile
 
 import pigpio # http://abyz.co.uk/rpi/pigpio/python.html
 
@@ -505,4 +504,4 @@ def main():
     pi.stop() # Disconnect from Pi.
 
 if __name__ == '__main__':
-    cProfile.run('main()')
+    main()
