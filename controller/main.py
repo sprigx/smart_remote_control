@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import subprocess
 import textwrap
 import uvicorn
+from test import Test
 
 app = FastAPI()
 
@@ -24,7 +25,10 @@ def control(request: Request):
 
 @app.get("/test")
 def test():
-    return {"detail": "ok"}
+    plus = gpio_handler.execute('+')
+    minus = gpio_handler.execute('-')
+    return {"detail": {"plus": plus, "minus": minus}}
 
 if __name__ == '__main__':
+    gpio_handler = Test()
     uvicorn.run(app, host='0.0.0.0', port=8000)
