@@ -7,26 +7,23 @@ import pigpio # http://abyz.co.uk/rpi/pigpio/python.html
 
 
 class RemoteController:
-    def __init__(self, gpio, ):
-        GLITCH     = 100
-        PRE_MS     = 200
-        POST_MS    = 15
-        FREQ       = 38.0
-        SHORT      = 10
-        GAP_MS     = 100
-        TOLERANCE  = 15
+    GLITCH     = 100
+    PRE_MS     = 200
+    POST_MS    = 15
+    FREQ       = 38.0
+    SHORT      = 10
+    GAP_MS     = 100
+    TOLERANCE  = 15
 
-        POST_US    = POST_MS * 1000
-        PRE_US     = PRE_MS  * 1000
-        GAP_S      = GAP_MS  / 1000.0
-        CONFIRM    = not NO_CONFIRM
-        TOLER_MIN =  (100 - TOLERANCE) / 100.0
-        TOLER_MAX =  (100 + TOLERANCE) / 100.0
+    POST_US    = POST_MS * 1000
+    PRE_US     = PRE_MS  * 1000
+    GAP_S      = GAP_MS  / 1000.0
+    TOLER_MIN =  (100 - TOLERANCE) / 100.0
+    TOLER_MAX =  (100 + TOLERANCE) / 100.0
+
+    def __init__(self, gpio, ):
 
         last_tick = 0
-        in_code = False
-        code = []
-        fetching_code = False
         pi = pigpio.pi() # Connect to Pi.
 
         if not pi.connected:
@@ -68,7 +65,7 @@ class RemoteController:
                 wave[i] = spaces_wid[ci]
         else: # Mark
             if ci not in marks_wid:
-                wf = carrier(gpio, FREQ, ci)
+                wf = carrier(gpio, self.FREQ, ci)
                 pi.wave_add_generic(wf)
                 marks_wid[ci] = pi.wave_create()
            wave[i] = marks_wid[ci]
