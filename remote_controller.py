@@ -66,7 +66,6 @@ class RemoteController:
         spaces_wid = {}
 
         wave = [0]*len(code)
-        print(code)
 
         for i in range(0, len(code)):
             ci = code[i]
@@ -81,6 +80,7 @@ class RemoteController:
                     self.pi.wave_add_generic(wf)
                     marks_wid[ci] = self.pi.wave_create()
                 wave[i] = marks_wid[ci]
+        print(wave)
 
         delay = self.emit_time - time.time()
 
