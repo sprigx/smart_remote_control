@@ -23,11 +23,10 @@ class RemoteController:
 
     def __init__(self, gpio, ):
 
-        last_tick = 0
-        pi = pigpio.pi() # Connect to Pi.
+        self.pi = pigpio.pi() # Connect to Pi.
 
-        if not pi.connected:
-           exit(0)
+        if not self.pi.connected:
+           return 1
 
         filenames = glob("./recordings/*.json")
         self.records = {
@@ -36,9 +35,9 @@ class RemoteController:
             for filename in filenames
         }
 
-        pi.set_mode(gpio, pigpio.OUTPUT) # IR TX connected to this GPIO.
-        pi.wave_add_new()
-        emit_time = time.time()
+        self.pi.set_mode(gpio, pigpio.OUTPUT) # IR TX connected to this GPIO.
+        self.pi.wave_add_new()
+        self.emit_time = time.time()
 
     def parse_file(filename):
         with open(filename, 'r') as f:
@@ -60,35 +59,35 @@ class RemoteController:
         ci = code[i]
         if i & 1: # Space
             if ci not in spaces_wid:
-                pi.wave_add_generic([pigpio.pulse(0, 0, ci)])
-                spaces_wid[ci] = pi.wave_create()
+                self.pi.wave_add_generic([pigpio.pulse(0, 0, ci)])
+                spaces_wid[ci] = self.pi.wave_create()
                 wave[i] = spaces_wid[ci]
         else: # Mark
             if ci not in marks_wid:
                 wf = carrier(gpio, self.FREQ, ci)
-                pi.wave_add_generic(wf)
-                marks_wid[ci] = pi.wave_create()
+                self.pi.wave_add_generic(wf)
+                marks_wid[ci] = self.pi.wave_create()
            wave[i] = marks_wid[ci]
 
-    delay = emit_time - time.time()
+    delay = self.emit_time - time.time()
 
     if delay > 0.0:
         time.sleep(delay)
-    pi.wave_chain(wave)
+    self.pi.wave_chain(wave)
 
-    while pi.wave_tx_busy():
+    while self.pi.wave_tx_busy():
         time.sleep(0.002)
-    emit_time = time.time() + GAP_S
+    self.emit_time = time.time() + GAP_S
 
     for i in marks_wid:
-        pi.wave_delete(marks_wid[i])
+        self.pi.wave_delete(marks_wid[i])
     marks_wid = {}
 
     for i in spaces_wid:
-        pi.wave_delete(spaces_wid[i])
+        self.pi.wave_delete(spaces_wid[i])
     spaces_wid = {}
 
-    pi.stop() # Disconnect from Pi.
+    self.pi.stop() # Disconnect from Pi.
 
 
 if __name__ == '__main__':
