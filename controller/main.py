@@ -3,7 +3,11 @@ from pydantic import BaseModel
 import subprocess
 import textwrap
 import uvicorn
+import os
 from test import Test
+
+def build_filepath(relative_path):
+    return os.path.join(os.path.dirname(__file__), relative_path)
 
 app = FastAPI()
 
@@ -15,8 +19,8 @@ class Request(BaseModel):
 @app.post("/control")
 def control(request: Request):
     try:
-        cmd = ('python3 irrp.py -p -g17 -f codes '
-              f'{request.target}:{request.command}')
+        cmd = (f'python3 {build_filepath('irrp.py')} -p -g17 -f codes '
+               f'{request.target}:{request.command}')
         res = subprocess.check_output(cmd, shell=True)
         print(cmd)
         return {"detail": "ok"}
