@@ -107,6 +107,7 @@ class RemoteController:
             self.pi.wave_delete(spaces_wid[i])
         spaces_wid = {}
         print('transmit end')
+        return 'transmit done'
 
 if __name__ == '__main__':
     c = RemoteController(17)

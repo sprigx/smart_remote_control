@@ -22,7 +22,8 @@ class Request(BaseModel):
 @app.post("/control")
 async def control(request: Request):
     try:
-        c.transmit(request.target, request.command)
+        res = c.transmit(request.target, request.command)
+        logger.info(res)
         return {"detail": "ok"}
     except:
         return {"detail": "failed"}
