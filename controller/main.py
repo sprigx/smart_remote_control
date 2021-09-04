@@ -19,7 +19,7 @@ class Request(BaseModel):
 @app.post("/control")
 def control(request: Request):
     try:
-        cmd = (f'python3 {build_filepath('irrp.py')} -p -g17 -f codes '
+        cmd = (f"python3 {build_filepath('irrp.py')} -p -g17 -f codes "
                f'{request.target}:{request.command}')
         res = subprocess.check_output(cmd, shell=True)
         print(cmd)
