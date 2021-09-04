@@ -55,6 +55,9 @@ class RemoteController:
             wf.append(pigpio.pulse(0, 1<<gpio, off))
         return wf
 
+    def cleanup(self):
+        self.pi.stop()
+
     def transmit(self, target, command):
         try:
             code = self.records[target][command]
@@ -99,10 +102,8 @@ class RemoteController:
             self.pi.wave_delete(spaces_wid[i])
         spaces_wid = {}
 
-        self.pi.stop() # Disconnect from Pi.
-        print('done.')
-
 
 if __name__ == '__main__':
     c = RemoteController(17)
     res = c.transmit('dac', 'voldown')
+    c.cleanup()

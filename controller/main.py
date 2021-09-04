@@ -12,13 +12,13 @@ def build_filepath(relative_path):
 
 app = FastAPI()
 
-# リクエストbodyを定義
+# define the request body.
 class Request(BaseModel):
     target: str
     command: str
 
 @app.post("/control")
-def control(request: Request):
+async def control(request: Request):
     try:
         # cmd = (f"python3 {build_filepath('irrp.py')} -p -g17 -f {build_filepath('codes')} "
         #        f'{request.target}:{request.command}')
@@ -30,8 +30,13 @@ def control(request: Request):
         return {"detail": "failed"}
 
 @app.get("/test")
-def test():
+async def test():
     return {"detail": "this is a test."}
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    print('Shutting down the server.')
+    c.cleanup()
 
 if __name__ == '__main__':
     c = RemoteController(17)
