@@ -473,7 +473,6 @@ def main():
                       pi.wave_add_generic(wf)
                       marks_wid[ci] = pi.wave_create()
                    wave[i] = marks_wid[ci]
-             print(wave)
 
              delay = emit_time - time.time()
 

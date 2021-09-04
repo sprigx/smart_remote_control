@@ -80,7 +80,6 @@ class RemoteController:
                     self.pi.wave_add_generic(wf)
                     marks_wid[ci] = self.pi.wave_create()
                 wave[i] = marks_wid[ci]
-        print(wave)
 
         delay = self.emit_time - time.time()
 
