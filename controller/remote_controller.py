@@ -35,7 +35,6 @@ class RemoteController:
         self.pi.set_mode(self.gpio, pigpio.OUTPUT) # IR TX connected to this GPIO.
         self.pi.wave_add_new()
         self.emit_time = time.time()
-        return target
 
     def build_filepath(self, relative_path):
         return os.path.join(os.path.dirname(__file__), relative_path)
