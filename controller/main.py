@@ -11,8 +11,8 @@ def build_filepath(relative_path):
     return os.path.join(os.path.dirname(__file__), relative_path)
 
 app = FastAPI()
-c = RemoteController(17)
 logger = logging.getLogger('uvicorn')
+c = RemoteController(17)
 
 # define the request body.
 class Request(BaseModel):

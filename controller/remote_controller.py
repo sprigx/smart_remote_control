@@ -24,7 +24,8 @@ class RemoteController:
         if not self.pi.connected:
            return 1
 
-        filenames = glob("./recordings/*.json")
+        target = self.build_filepath('controller/recordings/*.json')
+        filenames = glob(target)
         self.records = {
             re.search('^.*\/(.*).json$', filename).group(1):
             self.parse_file(filename)
@@ -34,6 +35,10 @@ class RemoteController:
         self.pi.set_mode(self.gpio, pigpio.OUTPUT) # IR TX connected to this GPIO.
         self.pi.wave_add_new()
         self.emit_time = time.time()
+        return target
+
+    def build_filepath(self, relative_path):
+        return os.path.join(os.path.dirname(__file__), relative_path)
 
     def parse_file(self, filename):
         with open(filename, 'r') as f:
@@ -59,9 +64,11 @@ class RemoteController:
         self.pi.stop()
 
     def transmit(self, target, command):
+        print('trasmit start')
         try:
             code = self.records[target][command]
         except KeyError:
+            print('no record.')
             return 'No such record.'
 
         # Create wave
@@ -101,7 +108,11 @@ class RemoteController:
         for i in spaces_wid:
             self.pi.wave_delete(spaces_wid[i])
         spaces_wid = {}
+        print('transmit end')
+        return 'transmit done'
 
 if __name__ == '__main__':
     c = RemoteController(17)
-    res = c.transmit('dac', 'voldown')
+    c.transmit('dac', 'voldown')
+    c.transmit('dac', 'voldown')
+    c.cleanup()
