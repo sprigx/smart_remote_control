@@ -12,7 +12,7 @@ def build_filepath(relative_path):
 
 app = FastAPI()
 logger = logging.getLogger('uvicorn')
-c = RemoteController(17)
+c = RemoteController(17, logger)
 
 # define the request body.
 class Request(BaseModel):
