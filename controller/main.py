@@ -24,7 +24,8 @@ async def control(request: Request):
     try:
         c.transmit(request.target, request.command)
         return {"detail": "ok"}
-    except:
+    except Exception as e:
+        logger.error(e)
         return {"detail": "failed"}
 
 @app.get("/test")

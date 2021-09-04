@@ -17,15 +17,15 @@ class RemoteController:
     GAP_S      = GAP_MS  / 1000.0
 
     def __init__(self, gpio, logger):
-
         self.pi = pigpio.pi() # Connect to Pi.
         self.gpio = gpio
+        self.logger = logger
 
         if not self.pi.connected:
            return 1
 
         target = self.build_filepath('recordings/*.json')
-        logger.info(f'Reading records from ... {target}')
+        self.logger.info(f'Reading records from ... {target}')
         filenames = glob(target)
         self.records = {
             re.search('^.*\/(.*).json$', filename).group(1):
@@ -67,7 +67,7 @@ class RemoteController:
         try:
             code = self.records[target][command]
         except KeyError:
-            logger.info('no such record.')
+            self.logger.info('no such record.')
             return 1
 
         # Create wave
@@ -107,7 +107,7 @@ class RemoteController:
         for i in spaces_wid:
             self.pi.wave_delete(spaces_wid[i])
         spaces_wid = {}
-        logger.info('transmit done')
+        self.logger.info('transmit done')
         return 0
 
 if __name__ == '__main__':
