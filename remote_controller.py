@@ -7,31 +7,27 @@ import pigpio # http://abyz.co.uk/rpi/pigpio/python.html
 
 
 class RemoteController:
-    GLITCH     = 100
     PRE_MS     = 200
     POST_MS    = 15
     FREQ       = 38.0
-    SHORT      = 10
     GAP_MS     = 100
     TOLERANCE  = 15
-
     POST_US    = POST_MS * 1000
     PRE_US     = PRE_MS  * 1000
     GAP_S      = GAP_MS  / 1000.0
-    TOLER_MIN =  (100 - TOLERANCE) / 100.0
-    TOLER_MAX =  (100 + TOLERANCE) / 100.0
 
-    def __init__(self, gpio, ):
+    def __init__(self, gpio):
 
         self.pi = pigpio.pi() # Connect to Pi.
+        self.gpio = gpio
 
         if not self.pi.connected:
            return 1
 
-        filenames = glob("./recordings/*.json")
+        filenames = glob("./controller/recordings/*.json")
         self.records = {
             re.search('^.*\/(.*).json$', filename).group(1):
-            parse_file(filename)
+            self.parse_file(filename)
             for filename in filenames
         }
 
@@ -39,57 +35,73 @@ class RemoteController:
         self.pi.wave_add_new()
         self.emit_time = time.time()
 
-    def parse_file(filename):
+    def parse_file(self, filename):
         with open(filename, 'r') as f:
             return json.load(f)
 
-    def transmit(self, target, command)
-    try:
-        code = self.records[target][command]
-    except KeyError:
-        return 'No such record.'
+    def carrier(self, gpio, frequency, micros):
+        wf = []
+        cycle = 1000.0 / frequency
+        cycles = int(round(micros/cycle))
+        on = int(round(cycle / 2.0))
+        sofar = 0
+        for c in range(cycles):
+            target = int(round((c+1)*cycle))
+            sofar += on
+            off = target - sofar
+            sofar += off
+            wf.append(pigpio.pulse(1<<gpio, 0, on))
+            wf.append(pigpio.pulse(0, 1<<gpio, off))
+        return wf
 
-    # Create wave
-    marks_wid = {}
-    spaces_wid = {}
+    def transmit(self, target, command):
+        try:
+            code = self.records[target][command]
+        except KeyError:
+            return 'No such record.'
 
-    wave = [0]*len(code)
+        # Create wave
+        marks_wid = {}
+        spaces_wid = {}
 
-    for i in range(0, len(code)):
-        ci = code[i]
-        if i & 1: # Space
-            if ci not in spaces_wid:
-                self.pi.wave_add_generic([pigpio.pulse(0, 0, ci)])
-                spaces_wid[ci] = self.pi.wave_create()
-                wave[i] = spaces_wid[ci]
-        else: # Mark
-            if ci not in marks_wid:
-                wf = carrier(gpio, self.FREQ, ci)
-                self.pi.wave_add_generic(wf)
-                marks_wid[ci] = self.pi.wave_create()
-           wave[i] = marks_wid[ci]
+        wave = [0]*len(code)
 
-    delay = self.emit_time - time.time()
+        for i in range(0, len(code)):
+            ci = code[i]
+            if i & 1: # Space
+                if ci not in spaces_wid:
+                    self.pi.wave_add_generic([pigpio.pulse(0, 0, ci)])
+                    spaces_wid[ci] = self.pi.wave_create()
+                    wave[i] = spaces_wid[ci]
+            else: # Mark
+                if ci not in marks_wid:
+                    wf = self.carrier(self.gpio, self.FREQ, ci)
+                    self.pi.wave_add_generic(wf)
+                    marks_wid[ci] = self.pi.wave_create()
+                wave[i] = marks_wid[ci]
 
-    if delay > 0.0:
-        time.sleep(delay)
-    self.pi.wave_chain(wave)
+        delay = self.emit_time - time.time()
 
-    while self.pi.wave_tx_busy():
-        time.sleep(0.002)
-    self.emit_time = time.time() + GAP_S
+        if delay > 0.0:
+            time.sleep(delay)
+        self.pi.wave_chain(wave)
 
-    for i in marks_wid:
-        self.pi.wave_delete(marks_wid[i])
-    marks_wid = {}
+        while self.pi.wave_tx_busy():
+            time.sleep(0.002)
+        self.emit_time = time.time() + self.GAP_S
 
-    for i in spaces_wid:
-        self.pi.wave_delete(spaces_wid[i])
-    spaces_wid = {}
+        for i in marks_wid:
+            self.pi.wave_delete(marks_wid[i])
+        marks_wid = {}
 
-    self.pi.stop() # Disconnect from Pi.
+        for i in spaces_wid:
+            self.pi.wave_delete(spaces_wid[i])
+        spaces_wid = {}
+
+        self.pi.stop() # Disconnect from Pi.
+        print('done.')
 
 
 if __name__ == '__main__':
-    c = RemoteController()
-    c.transmit('dac', 'voldown')
+    c = RemoteController(17)
+    res = c.transmit('dac', 'voldown')
