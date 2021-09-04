@@ -35,9 +35,10 @@ async def test():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    print('Shutting down the server.')
+    logger.info('Shutting down the server.')
     c.cleanup()
 
 if __name__ == '__main__':
     c = RemoteController(17)
+    logger = logging.getLogger('uvicorn')
     uvicorn.run(app, host='0.0.0.0', port=8000)
