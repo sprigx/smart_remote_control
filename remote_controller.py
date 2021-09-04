@@ -73,7 +73,7 @@ class RemoteController:
                 if ci not in spaces_wid:
                     self.pi.wave_add_generic([pigpio.pulse(0, 0, ci)])
                     spaces_wid[ci] = self.pi.wave_create()
-                    wave[i] = spaces_wid[ci]
+                wave[i] = spaces_wid[ci]
             else: # Mark
                 if ci not in marks_wid:
                     wf = self.carrier(ci)
