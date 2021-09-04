@@ -452,6 +452,7 @@ def main():
           if arg in records:
 
              code = records[arg]
+             print(code)
 
              # Create wave
 

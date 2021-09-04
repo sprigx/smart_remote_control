@@ -31,7 +31,7 @@ class RemoteController:
             for filename in filenames
         }
 
-        self.pi.set_mode(gpio, pigpio.OUTPUT) # IR TX connected to this GPIO.
+        self.pi.set_mode(self.gpio, pigpio.OUTPUT) # IR TX connected to this GPIO.
         self.pi.wave_add_new()
         self.emit_time = time.time()
 
@@ -39,9 +39,10 @@ class RemoteController:
         with open(filename, 'r') as f:
             return json.load(f)
 
-    def carrier(self, gpio, frequency, micros):
+    def carrier(self, micros):
+        gpio = self.gpio
         wf = []
-        cycle = 1000.0 / frequency
+        cycle = 1000.0 / self.FREQ
         cycles = int(round(micros/cycle))
         on = int(round(cycle / 2.0))
         sofar = 0
@@ -65,6 +66,7 @@ class RemoteController:
         spaces_wid = {}
 
         wave = [0]*len(code)
+        print(code)
 
         for i in range(0, len(code)):
             ci = code[i]
@@ -75,7 +77,7 @@ class RemoteController:
                     wave[i] = spaces_wid[ci]
             else: # Mark
                 if ci not in marks_wid:
-                    wf = self.carrier(self.gpio, self.FREQ, ci)
+                    wf = self.carrier(ci)
                     self.pi.wave_add_generic(wf)
                     marks_wid[ci] = self.pi.wave_create()
                 wave[i] = marks_wid[ci]
