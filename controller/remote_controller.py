@@ -24,7 +24,8 @@ class RemoteController:
         if not self.pi.connected:
            return 1
 
-        target = self.build_filepath('controller/recordings/*.json')
+        target = self.build_filepath('recordings/*.json')
+        print(target)
         filenames = glob(target)
         self.records = {
             re.search('^.*\/(.*).json$', filename).group(1):
