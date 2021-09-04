@@ -24,7 +24,7 @@ class RemoteController:
         if not self.pi.connected:
            return 1
 
-        filenames = glob("./controller/recordings/*.json")
+        filenames = glob("./recordings/*.json")
         self.records = {
             re.search('^.*\/(.*).json$', filename).group(1):
             self.parse_file(filename)
@@ -54,6 +54,9 @@ class RemoteController:
             wf.append(pigpio.pulse(1<<gpio, 0, on))
             wf.append(pigpio.pulse(0, 1<<gpio, off))
         return wf
+
+    def cleanup(self):
+        self.pi.stop()
 
     def transmit(self, target, command):
         try:
@@ -98,10 +101,6 @@ class RemoteController:
         for i in spaces_wid:
             self.pi.wave_delete(spaces_wid[i])
         spaces_wid = {}
-
-        self.pi.stop() # Disconnect from Pi.
-        print('done.')
-
 
 if __name__ == '__main__':
     c = RemoteController(17)
