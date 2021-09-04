@@ -24,7 +24,7 @@ class RemoteController:
         if not self.pi.connected:
            return 1
 
-        filenames = glob("./recordings/*.json")
+        filenames = glob(self.build_filepath('controller/recordings/*.json'))
         self.records = {
             re.search('^.*\/(.*).json$', filename).group(1):
             self.parse_file(filename)
@@ -66,6 +66,7 @@ class RemoteController:
         try:
             code = self.records[target][command]
         except KeyError:
+            print('no record.')
             return 'No such record.'
 
         # Create wave
@@ -105,10 +106,9 @@ class RemoteController:
         for i in spaces_wid:
             self.pi.wave_delete(spaces_wid[i])
         spaces_wid = {}
-
+        print('transmit end')
 
 if __name__ == '__main__':
-    print('test')
     c = RemoteController(17)
     c.transmit('dac', 'voldown')
     c.transmit('dac', 'voldown')
