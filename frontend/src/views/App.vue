@@ -2,25 +2,28 @@
 <div class="container">
   <h1>Remote Controller</h1>
   <hr>
-  <button class="btn btn-primary" @click="dacVoldown">DAC vol-down</button>
+  <div class="d-grid gap-2">
+    <button class="btn btn-primary" @click="transmit('dac', 'volup')">DAC vol-up</button>
+    <button class="btn btn-primary" @click="transmit('dac', 'voldown')">DAC vol-down</button>
+  </div>
 </div>
 </template>
 
 <script>
 import axios from 'axios';
 
-const baseURL = 'http://raspi-zero:8000/'
+const baseURL = 'http://raspi-zero.lan:8000/'
 
 export default {
   setup() {
-    const dacVoldown = () => {
+    const transmit = (target, command) => {
       axios.post(baseURL + "control", {
-        target: "dac",
-        command: "voldown"
+        target: target,
+        command: command
       })
     }
     return {
-        dacVoldown
+        transmit
       }
   }
 }
