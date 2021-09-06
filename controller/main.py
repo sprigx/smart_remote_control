@@ -5,7 +5,9 @@ import textwrap
 import uvicorn
 import os
 import logging
+from fastapi.middleware.cors import CORSMiddleware
 from remote_controller import RemoteController
+
 
 def build_filepath(relative_path):
     return os.path.join(os.path.dirname(__file__), relative_path)
@@ -13,6 +15,18 @@ def build_filepath(relative_path):
 app = FastAPI()
 logger = logging.getLogger('uvicorn')
 c = RemoteController(17, logger)
+
+origins = [
+    '*'
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 # define the request body.
 class Request(BaseModel):
