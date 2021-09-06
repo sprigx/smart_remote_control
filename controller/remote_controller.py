@@ -67,7 +67,7 @@ class RemoteController:
         try:
             code = self.records[target][command]
         except KeyError:
-            self.logger.info('no such record.')
+            self.logger.warning('no such record.')
             return 1
 
         # Create wave
