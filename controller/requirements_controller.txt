@@ -1,4 +1,0 @@
-pigpio
-fastapi
-uvicorn
-
