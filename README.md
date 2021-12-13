@@ -1,7 +1,8 @@
 # smart_remote_control
 
-ラズパイzeroを使った赤外線リモコンのフロントエンドWebアプリ
-参考記事 https://qiita.com/takjg/items/e6b8af53421be54b62c9
+ラズパイzeroを使った赤外線リモコンのWebアプリ
+
+バックエンド→https://github.com/sprigx/iot_backend
 
 ## Screenshot
 
